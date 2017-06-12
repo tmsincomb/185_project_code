@@ -6,6 +6,7 @@ import numpy.random as rnd
 from matplotlib.patches import Ellipse
 from PIL import Image, ImageDraw
 import matplotlib.image as mpimg
+import numpy as np
 
 try:
     if sys.argv[1] == '-h':
@@ -32,15 +33,11 @@ try:
         #meta -> area=# x=# y=# width=# height=#
         meta = [[v.split()[1]] + v.split()[5:] for v in r.split('\n')[:]]
 
-        with open(output_file+'meta_'+input_file.split('/')[-1][:-4]+'.txt', 'w') as f:
-            pad = [[count]+['area='+str(v[0])]+v[1:] for count,v in list(enumerate(meta[:]))]
-            f.write('\n'.join(list(map(str, pad))))
-            f.write('\n'+"approximate number of cells ~"+str(len(meta)))
-            f.close()
+        f = open(output_file+'meta_'+input_file.split('/')[-1][:-4]+'.txt', 'w')
+        pad = [[count]+['='+str(v[0])]+v[1:] for count,v in list(enumerate(meta[:]))]
+        f.write('\n'.join(list(map(str, pad))))
 
         meta_int = [list(map(float, [v[0]] + [p.split('=')[1][:-1] for p in v[2:]])) for v in meta[:]]
-        print('approximate number of cells ~'+str(len(meta_int)))
-
 
         """
         rest of the code is just to get superimposed image
@@ -48,15 +45,21 @@ try:
         #meta_int -> area=# x=# y=# width=# height=#
         im = Image.open(input_file)
         w, h = im.size
-        ells = [Ellipse(xy=[v[1], h-v[2]], width=v[3], height=v[4], angle=360) for v in meta_int]
+
+        array = sorted([int(v[0]) for v in meta_int])[int(len(meta_int)/2):]
+        mean = np.mean(array)
+        ells = [Ellipse(xy=[v[1]+15, h-v[2]-15], width=v[3], height=v[4], angle=360) for v in meta_int if int(v[0]) > mean/20.0]
 
         fig = plt.figure(0)
         ax = fig.add_subplot(111, aspect='equal')
+
         for e in ells:
             ax.add_artist(e)
             e.set_clip_box(ax.bbox)
             e.set_facecolor('red')
-
+        f.write('\n'+"approximate number of cells ~"+str(len(ells)))
+        f.close()
+        print('approximate number of cells ~'+str(len(ells)))
         ax.set_xlim(0, w)
         ax.set_ylim(0, h)
         ax.set_axis_off()
@@ -89,4 +92,5 @@ try:
         sb.call('rm '+plot_, shell=True)
         sb.call('rm '+primed_, shell=True)
 except:
-    print('to get help > python3 cellcounter.py -h')
+    print('Crashed!!!')
+    print('To get help > python3 cellcounter.py -h')
